@@ -1,0 +1,170 @@
+package com.ios18.appstore.ui
+
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.ios18.appstore.data.AppItem
+import com.ios18.appstore.data.Story
+
+val Blue = Color(0xFF007AFF)
+val Bg = Color(0xFFF2F2F7)
+val GrayText = Color(0xFF8E8E93)
+val Separator = Color(0xFFC6C6C8)
+val GetBg = Color(0xFFE9E9EB)
+
+fun Color.darkened(f: Float = 0.5f) = Color(red * f, green * f, blue * f)
+fun fmtRating(r: Double) = "%.1f".format(r).replace('.', ',')
+
+fun openInPlay(context: Context, pkg: String) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkg")))
+    } catch (e: ActivityNotFoundException) {
+        context.startActivity(Intent(Intent.ACTION_VIEW,
+            Uri.parse("https://play.google.com/store/apps/details?id=$pkg")))
+    }
+}
+
+@Composable
+fun AppIcon(app: AppItem, size: Dp, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .size(size)
+            .clip(RoundedCornerShape(size * 0.22f))
+            .background(app.color),
+        contentAlignment = Alignment.Center
+    ) { Text(app.emoji, fontSize = (size.value * 0.45f).sp) }
+}
+
+@Composable
+fun GetButton(onClick: () -> Unit, text: String = "Загрузить", compact: Boolean = false) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(GetBg)
+            .clickable(onClick = onClick)
+            .padding(horizontal = if (compact) 12.dp else 16.dp, vertical = 6.dp)
+    ) {
+        Text(text, color = Blue, fontSize = if (compact) 13.sp else 14.sp,
+            fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+fun AppRow(app: AppItem, onOpen: () -> Unit, onGet: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
+            .background(Color.White)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AppIcon(app, 60.dp)
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            Text(app.name, fontSize = 16.sp, fontWeight = FontWeight.Medium,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(app.category, fontSize = 13.sp, color = GrayText)
+            Text("★ ${fmtRating(app.rating)}  ·  ${app.ratingCount}",
+                fontSize = 12.sp, color = GrayText)
+        }
+        GetButton(onClick = onGet)
+    }
+}
+
+@Composable
+fun AppCardSmall(app: AppItem, onOpen: () -> Unit, onGet: () -> Unit) {
+    Column(
+        Modifier
+            .width(132.dp)
+            .clickable(onClick = onOpen)
+            .padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        AppIcon(app, 112.dp)
+        Spacer(Modifier.height(6.dp))
+        Text(app.name, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(app.category, fontSize = 12.sp, color = GrayText, maxLines = 1)
+        Spacer(Modifier.height(6.dp))
+        GetButton(onClick = onGet, compact = true)
+    }
+}
+
+@Composable
+fun SectionHeader(title: String) {
+    Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+}
+
+@Composable
+fun LargeTitle(text: String) {
+    Text(text, fontSize = 34.sp, fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+}
+
+@Composable
+fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(50))
+            .background(if (selected) Blue else Color(0xFFE5E5EA))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(label, color = if (selected) Color.White else Blue,
+            fontSize = 14.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+fun TodayCard(story: Story, onOpen: () -> Unit) {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Text(story.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+            color = Blue, letterSpacing = 0.5.sp)
+        Spacer(Modifier.height(8.dp))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(400.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .clickable(onClick = onOpen)
+        ) {
+            Box(Modifier.fillMaxSize()
+                .background(Brush.verticalGradient(
+                    listOf(story.app.color, story.app.color.darkened()))))
+            Column(Modifier.align(Alignment.BottomStart).padding(20.dp)) {
+                Text(story.title, color = Color.White, fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold)
+                Text(story.app.developer, color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 15.sp)
+                Spacer(Modifier.height(12.dp))
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.White)
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Text("СМОТРЕТЬ", color = Color.Black, fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
