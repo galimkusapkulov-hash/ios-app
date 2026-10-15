@@ -1,0 +1,229 @@
+package com.ios18.appstore.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.ios18.appstore.data.Repository
+import com.ios18.appstore.ui.*
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+@Composable
+fun TodayScreen(onOpen: (String) -> Unit) {
+    val date = remember {
+        SimpleDateFormat("EEEE, d MMMM", Locale("ru")).format(Date()).uppercase()
+    }
+    LazyColumn(Modifier.fillMaxSize().background(Bg)) {
+        item {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text(date, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Blue)
+                Text("Сегодня", fontSize = 34.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        items(Repository.todayStories) { story ->
+            TodayCard(story) { onOpen(story.app.playPackage) }
+        }
+        item { Spacer(Modifier.height(16.dp)) }
+    }
+}
+
+@Composable
+fun GamesScreen(onOpen: (String) -> Unit) {
+    val context = LocalContext.current
+    LazyColumn(Modifier.fillMaxSize().background(Bg)) {
+        item { LargeTitle("Игры") }
+        item { TodayCard(Repository.gameStory) { onOpen(Repository.gameStory.app.playPackage) } }
+        item { SectionHeader("Топ бесплатных игр") }
+        item {
+            LazyRow(contentPadding = PaddingValues(horizontal = 12.dp)) {
+                items(Repository.topGames) { app ->
+                    AppCardSmall(app,
+                        onOpen = { onOpen(app.playPackage) },
+                        onGet = { openInPlay(context, app.playPackage) })
+                }
+            }
+        }
+        item { SectionHeader("Обязательные загрузки") }
+        items(Repository.topGames.drop(3)) { app ->
+            Column {
+                AppRow(app, onOpen = { onOpen(app.playPackage) },
+                    onGet = { openInPlay(context, app.playPackage) })
+                Divider(color = Color(0xFFE5E5EA), modifier = Modifier.padding(start = 88.dp))
+            }
+        }
+        item { Spacer(Modifier.height(16.dp)) }
+    }
+}
+
+@Composable
+fun AppsScreen(onOpen: (String) -> Unit) {
+    val context = LocalContext.current
+    var category by remember { mutableStateOf("Все") }
+    val categories = remember { listOf("Все") + Repository.topApps.map { it.category }.distinct() }
+    val filtered = if (category == "Все") Repository.topApps
+                   else Repository.topApps.filter { it.category == category }
+
+    LazyColumn(Modifier.fillMaxSize().background(Bg)) {
+        item { LargeTitle("Приложения") }
+        item { TodayCard(Repository.appStory) { onOpen(Repository.appStory.app.playPackage) } }
+        item { SectionHeader("Топ бесплатных приложений") }
+        item {
+            LazyRow(contentPadding = PaddingValues(horizontal = 12.dp)) {
+                items(Repository.topApps) { app ->
+                    AppCardSmall(app,
+                        onOpen = { onOpen(app.playPackage) },
+                        onGet = { openInPlay(context, app.playPackage) })
+                }
+            }
+        }
+        item { SectionHeader("Подборки") }
+        item {
+            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(categories) { c -> Chip(c, c == category) { category = c } }
+            }
+        }
+        items(filtered) { app ->
+            Column {
+                AppRow(app, onOpen = { onOpen(app.playPackage) },
+                    onGet = { openInPlay(context, app.playPackage) })
+                Divider(color = Color(0xFFE5E5EA), modifier = Modifier.padding(start = 88.dp))
+            }
+        }
+        item { Spacer(Modifier.height(16.dp)) }
+    }
+}
+
+@Composable
+fun ArcadeScreen(onOpen: (String) -> Unit) {
+    val context = LocalContext.current
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(Color(0xFF1C1C3A), Color(0xFF0A0A1F))))
+            .padding(16.dp)
+    ) {
+        Spacer(Modifier.height(4.dp))
+        Text("Аркада", fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Text("Сотни игр без рекламы и покупок", fontSize = 15.sp,
+            color = Color.White.copy(alpha = 0.7f))
+        Spacer(Modifier.height(24.dp))
+        val game = Repository.topGames.first()
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xFF2C2C4A))
+                .clickable { onOpen(game.playPackage) }
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AppIcon(game, 64.dp)
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(game.name, color = Color.White, fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold)
+                Text("Доступно в Аркаде", color = Color(0xFFFF375F), fontSize = 13.sp)
+            }
+            GetButton(onClick = { openInPlay(context, game.playPackage) })
+        }
+        Spacer(Modifier.height(16.dp))
+        Text("Популярное", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(Repository.topGames.drop(1)) { g ->
+                AppIcon(g, 72.dp, modifier = Modifier.clickable { onOpen(g.playPackage) })
+            }
+        }
+    }
+}
+
+@Composable
+fun SearchScreen(onOpen: (String) -> Unit) {
+    val context = LocalContext.current
+    var query by remember { mutableStateOf("") }
+    val results = if (query.isBlank()) emptyList() else Repository.allApps.filter {
+        it.name.contains(query, true) || it.category.contains(query, true) ||
+                it.developer.contains(query, true)
+    }
+    Column(Modifier.fillMaxSize().background(Bg)) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text("Поиск", fontSize = 34.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFFE3E3E8))
+                    .padding(horizontal = 10.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Filled.Search, null, tint = GrayText, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Box(Modifier.weight(1f)) {
+                    if (query.isEmpty())
+                        Text("Игры, приложения, статьи", color = GrayText, fontSize = 16.sp)
+                    BasicTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        singleLine = true,
+                        textStyle = TextStyle(color = Color.Black, fontSize = 16.sp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+        if (query.isBlank()) {
+            LazyColumn(Modifier.weight(1f)) {
+                item {
+                    Text("Предложения", fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                }
+                items(Repository.allApps.take(8)) { app ->
+                    Column {
+                        AppRow(app, onOpen = { onOpen(app.playPackage) },
+                            onGet = { openInPlay(context, app.playPackage) })
+                        Divider(color = Color(0xFFE5E5EA),
+                            modifier = Modifier.padding(start = 88.dp))
+                    }
+                }
+            }
+        } else {
+            LazyColumn(Modifier.weight(1f)) {
+                if (results.isEmpty()) {
+                    item { Text("Ничего не найдено", color = GrayText,
+                        modifier = Modifier.padding(16.dp)) }
+                } else {
+                    items(results) { app ->
+                        Column {
+                            AppRow(app, onOpen = { onOpen(app.playPackage) },
+                                onGet = { openInPlay(context, app.playPackage) })
+                            Divider(color = Color(0xFFE5E5EA),
+                                modifier = Modifier.padding(start = 88.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
